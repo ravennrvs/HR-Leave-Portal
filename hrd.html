@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>HR Leave Portal</title>
+    <style>
+        :root{--bg:#f4f6fb;--card:#fff;--ink:#1c2433;--muted:#6b7588;--line:#e3e8f0;--pri:#0f766e;--ok:#128a4f;--warn:#b7791f;--err:#c0392b}
+        *{box-sizing:border-box}
+        body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+        header{background:#0b3b38;color:#fff;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+        header b{font-size:20px}
+        header span{color:#a7d3cf;font-size:13px}
+        main{max-width:1100px;margin:0 auto;padding:28px 24px}
+        h1{margin:0 0 4px;font-size:24px}
+        .sub{color:var(--muted);margin:0 0 20px}
+        .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:12px}
+        label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;font-weight:600}
+        select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:#fff;color:var(--ink)}
+        select:disabled{background:#f0f2f6;color:#9aa3b2}
+        select:focus{outline:2px solid #9fddd6;border-color:var(--pri)}
+        table{width:100%;border-collapse:collapse}
+        th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+        th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+        tr.click{cursor:pointer}
+        tr.click:hover{background:#f0faf9}
+        tr.sel{background:#e3f5f3}
+        .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+        .b-ok{background:#e5f6ed;color:var(--ok)}
+        .b-warn{background:#fdf3de;color:var(--warn)}
+        .b-err{background:#fdeceb;color:var(--err)}
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+        .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+        .stat b{font-size:22px;display:block}
+        .stat span{color:var(--muted);font-size:12px}
+        .empty{padding:26px;text-align:center;color:var(--muted)}
+        .muted{color:var(--muted)}
+        .bar{height:8px;background:#e1efed;border-radius:6px;margin-bottom:14px}
+        .bar i{display:block;height:100%;background:var(--pri);border-radius:6px}
+        .bar.full i{background:var(--err)}
+        .tablewrap{overflow-x:auto}
+        h3{margin:0 0 12px}
+    </style>
+</head>
+<body>
+<header><b>🗓 HR Leave Portal</b><span>Masuk sebagai: HRD Manajer</span></header>
+<main id="main"></main>
+
+<script>
+    const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const YEAR_NOW=2026;
+    const pad=n=>String(n).padStart(2,'0');
+    const parse=iso=>{const [y,m,d]=iso.split('-').map(Number);return new Date(y,m-1,d)};
+    const fmtDate=iso=>{const d=parse(iso);return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`};
+    const diffDays=(a,b)=>Math.round((parse(b)-parse(a))/86400000)+1;
+    const stBadge=s=>`<span class="badge ${s==='Disetujui'?'b-ok':s==='Ditolak'?'b-err':'b-warn'}">${s}</span>`;
+
+    /* ===== DATA DUMMY ===== */
+    const EMP=[
+        {id:1,nama:'Andi Pratama',jab:'Staf IT',kuota:12,cuti:[
+                {s:'2026-11-18',e:'2026-11-20',j:'Cuti Tahunan',st:'Diajukan'},
+                {s:'2026-03-02',e:'2026-03-06',j:'Cuti Tahunan',st:'Disetujui'},
+                {s:'2025-08-11',e:'2025-08-13',j:'Cuti Tahunan',st:'Disetujui'}]},
+        {id:2,nama:'Bella Kusuma',jab:'Staf Keuangan',kuota:12,cuti:[
+                {s:'2026-11-23',e:'2026-11-27',j:'Cuti Tahunan',st:'Diajukan'},
+                {s:'2026-07-06',e:'2026-07-08',j:'Cuti Sakit',st:'Disetujui'}]},
+        {id:3,nama:'Candra Wijaya',jab:'Staf Pemasaran',kuota:12,cuti:[
+                {s:'2026-12-21',e:'2026-12-31',j:'Cuti Tahunan',st:'Diajukan'},
+                {s:'2026-05-04',e:'2026-05-08',j:'Cuti Tahunan',st:'Disetujui'},
+                {s:'2026-01-12',e:'2026-01-13',j:'Cuti Pribadi',st:'Ditolak'}]},
+        {id:4,nama:'Dewi Anggraini',jab:'Staf HRD',kuota:12,cuti:[
+                {s:'2026-11-18',e:'2026-11-18',j:'Cuti Pribadi',st:'Diajukan'},
+                {s:'2025-12-22',e:'2025-12-26',j:'Cuti Tahunan',st:'Disetujui'}]},
+        {id:5,nama:'Eko Nugroho',jab:'Manajer Operasional',kuota:12,cuti:[
+                {s:'2026-11-30',e:'2026-12-04',j:'Cuti Tahunan',st:'Diajukan'},
+                {s:'2026-08-17',e:'2026-08-19',j:'Cuti Tahunan',st:'Disetujui'},
+                {s:'2026-02-09',e:'2026-02-10',j:'Cuti Sakit',st:'Disetujui'}]},
+        {id:6,nama:'Fajar Ramadhan',jab:'Staf Gudang',kuota:12,cuti:[]}
+    ];
+
+    /* ===== STATE ===== */
+    const H={d:0,m:11,y:2026,sel:null};
+
+    function range(){
+        const {d,m,y}=H;
+        if(m===0)return [`${y}-01-01`,`${y}-12-31`];
+        const last=new Date(y,m,0).getDate();
+        if(d===0)return [`${y}-${pad(m)}-01`,`${y}-${pad(m)}-${pad(last)}`];
+        const x=`${y}-${pad(m)}-${pad(d)}`;return [x,x];
+    }
+    function setF(key,val){
+        H[key]=+val;
+        if(key!=='d')H.d=0;
+        H.sel=null;render();
+    }
+    function pick(id){H.sel=id;render();setTimeout(()=>document.getElementById('detail')?.scrollIntoView({behavior:'smooth'}),50)}
+
+    function render(){
+        const [ps,pe]=range();
+        const maxD=H.m?new Date(H.y,H.m,0).getDate():31;
+        const rows=[];
+        EMP.forEach(e=>e.cuti.forEach(c=>{if(c.s<=pe&&c.e>=ps)rows.push({e,c})}));
+        rows.sort((a,b)=>a.c.s.localeCompare(b.c.s));
+        const totalHari=rows.reduce((s,r)=>s+diffDays(r.c.s,r.c.e),0);
+        const pegawaiUnik=new Set(rows.map(r=>r.e.id)).size;
+
+        document.getElementById('main').innerHTML=`
+  <h1>Jadwal Cuti Pegawai</h1>
+  <p class="sub">Pilih tanggal, bulan, dan tahun untuk melihat pegawai yang mengajukan cuti pada periode tersebut.</p>
+
+  <div class="card">
+    <div class="grid">
+      <div><label>Tanggal</label>
+        <select ${H.m?'':'disabled'} onchange="setF('d',this.value)">
+          <option value="0">Semua tanggal</option>
+          ${Array.from({length:maxD},(_,i)=>`<option value="${i+1}" ${H.d===i+1?'selected':''}>${i+1}</option>`).join('')}
+        </select></div>
+      <div><label>Bulan</label>
+        <select onchange="setF('m',this.value)">
+          <option value="0">Semua bulan</option>
+          ${MONTHS.map((n,i)=>`<option value="${i+1}" ${H.m===i+1?'selected':''}>${n}</option>`).join('')}
+        </select></div>
+      <div><label>Tahun</label>
+        <select onchange="setF('y',this.value)">
+          ${[2025,2026,2027].map(y=>`<option ${H.y===y?'selected':''}>${y}</option>`).join('')}
+        </select></div>
+    </div>
+    <div class="muted">Periode dipilih: <b>${ps===pe?fmtDate(ps):fmtDate(ps)+' – '+fmtDate(pe)}</b></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><b>${rows.length}</b><span>Pengajuan cuti</span></div>
+    <div class="stat"><b>${pegawaiUnik}</b><span>Pegawai yang cuti</span></div>
+    <div class="stat"><b>${totalHari} hari</b><span>Total hari cuti diajukan</span></div>
+  </div>
+
+  <div class="card tablewrap">
+    ${rows.length?`<table>
+      <tr><th>Nama pegawai</th><th>Jabatan</th><th>Periode cuti</th><th>Lama cuti</th><th>Jenis</th><th>Status</th></tr>
+      ${rows.map(({e,c})=>`<tr class="click ${H.sel===e.id?'sel':''}" onclick="pick(${e.id})">
+        <td><b>${e.nama}</b></td><td>${e.jab}</td>
+        <td>${fmtDate(c.s)} – ${fmtDate(c.e)}</td>
+        <td>${diffDays(c.s,c.e)} hari</td><td>${c.j}</td><td>${stBadge(c.st)}</td></tr>`).join('')}
+    </table>
+    <div class="muted" style="margin-top:10px">Klik nama pegawai untuk melihat riwayat cuti dan sisa cuti tahun berjalan.</div>`
+            :`<div class="empty">Tidak ada pegawai yang mengajukan cuti pada periode ini.</div>`}
+  </div>
+  ${H.sel?detail(EMP.find(e=>e.id===H.sel)):''}`;
+    }
+
+    function detail(e){
+        const used=e.cuti.filter(c=>c.j==='Cuti Tahunan'&&c.st!=='Ditolak'&&c.s.startsWith(String(YEAR_NOW)))
+            .reduce((s,c)=>s+diffDays(c.s,c.e),0);
+        const sisa=Math.max(e.kuota-used,0);
+        const pct=Math.min(used/e.kuota*100,100);
+        return `<div class="card" id="detail">
+    <h3>Riwayat Cuti — ${e.nama} <span class="muted" style="font-weight:400">(${e.jab})</span></h3>
+    <div class="stats">
+      <div class="stat"><b>${e.kuota} hari</b><span>Jatah cuti tahunan ${YEAR_NOW}</span></div>
+      <div class="stat"><b>${used} hari</b><span>Terpakai / diajukan</span></div>
+      <div class="stat"><b>${sisa} hari</b><span>Sisa cuti tahun berjalan</span></div>
+    </div>
+    <div class="bar ${sisa===0?'full':''}"><i style="width:${pct}%"></i></div>
+    ${e.cuti.length?`<div class="tablewrap"><table>
+      <tr><th>Periode</th><th>Lama</th><th>Jenis</th><th>Status</th></tr>
+      ${e.cuti.slice().sort((a,b)=>b.s.localeCompare(a.s)).map(c=>`<tr>
+        <td>${fmtDate(c.s)} – ${fmtDate(c.e)}</td><td>${diffDays(c.s,c.e)} hari</td>
+        <td>${c.j}</td><td>${stBadge(c.st)}</td></tr>`).join('')}
+    </table></div>`:`<div class="empty">Belum ada riwayat cuti.</div>`}
+  </div>`;
+    }
+
+    render();
+</script>
+</body>
+</html>
